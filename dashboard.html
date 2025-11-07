@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Spinova-Collab</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <h1>Spinova-Collab</h1>
+            <div class="header-actions">
+                <div class="mode-switch">
+                    <button class="mode-btn" id="soloBtn">Solo</button>
+                    <button class="mode-btn active" id="teamBtn">Team</button>
+                </div>
+                
+                <!-- User Profile -->
+                <div class="user-profile">
+                    <div class="profile-trigger" id="profileTrigger">
+                        <img src="" alt="Profile" id="headerProfileImg" class="profile-img">
+                        <span id="headerUserName">User</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    
+                    <!-- Profile Dropdown -->
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <div class="profile-info">
+                            <img src="" alt="Profile" id="dropdownProfileImg" class="profile-img-large">
+                            <input type="file" id="profileImageInput" accept="image/*" style="display: none;">
+                            <button class="btn-change-photo" id="changePhotoBtn">Change Photo</button>
+                        </div>
+                        <div class="profile-details">
+                            <p class="profile-name" id="profileName">User Name</p>
+                            <p class="profile-email" id="profileEmail">user@email.com</p>
+                        </div>
+                        <div class="profile-actions">
+                            <button class="btn-logout" id="logoutBtnProfile">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar (Left Column) -->
+        <div class="sidebar">
+            <!-- Team Leader -->
+            <div class="sidebar-section" id="teamLeaderSection">
+                <h3>TEAM LEADER</h3>
+                <p id="teamLeaderName">-</p>
+            </div>
+
+            <!-- Add Member -->
+            <div class="sidebar-section" id="addMemberSection">
+                <h3>ADD MEMBER</h3>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="memberName" placeholder="Name (e.g., Rahul)">
+                    <button class="btn" id="addMemberBtn">Add</button>
+                </div>
+            </div>
+
+            <!-- Quick Add Task -->
+            <div class="sidebar-section" id="quickAddSection">
+                <h3>QUICK ADD TASK</h3>
+                <input type="text" id="quickTaskTitle" placeholder="Task title (e.g., Build login page)" style="margin-bottom: 8px;">
+                <select id="quickAssignee" style="margin-bottom: 8px;">
+                    <option value="">Select assignee</option>
+                </select>
+                <select id="quickStatus" style="margin-bottom: 8px;">
+                    <option value="todo">Todo</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="done">Done</option>
+                </select>
+                <input type="number" id="quickHours" placeholder="Est. hr" style="margin-bottom: 8px;">
+                <input type="date" id="quickDue" style="margin-bottom: 8px;">
+                <button class="btn" id="addTaskBtn">+ Add Task</button>
+            </div>
+
+            <!-- Filters -->
+            <div class="sidebar-section">
+                <h3>FILTERS</h3>
+                <input type="text" id="searchTasks" placeholder="Search tasks..." style="margin-bottom: 8px;">
+                <select id="filterStatus" style="margin-bottom: 8px;">
+                    <option value="">All Status</option>
+                    <option value="todo">Todo</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="done">Done</option>
+                </select>
+                <button class="btn btn-secondary" id="clearFiltersBtn">Clear Filters</button>
+            </div>
+
+            <!-- Utilities -->
+            <div class="sidebar-section">
+                <h3>UTILITIES</h3>
+                <button class="btn btn-secondary" id="exportBtn">Export CSV</button>
+            </div>
+        </div>
+
+        <!-- Main Content (Middle Column) -->
+        <div class="main-content">
+            <!-- Overview Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>OVERVIEW</h3>
+                    <p>Total Tasks: <strong id="totalTasks">0</strong></p>
+                    <p>Done: <strong id="doneTasks">0</strong></p>
+                    <p>On Track: <strong id="onTrackTasks">0</strong></p>
+                    <p>Blocked: <strong id="blockedTasks">0</strong></p>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Status Distribution</h3>
+                    <canvas id="statusChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Tasks by Member</h3>
+                    <canvas id="memberChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tasks Table -->
+            <div class="task-section">
+                <div class="task-header">
+                    <h3>Tasks</h3>
+                </div>
+                <table class="task-table">
+                    <thead>
+                        <tr>
+                            <th>TITLE</th>
+                            <th>ASSIGNEE</th>
+                            <th>STATUS</th>
+                            <th>EST. HRS</th>
+                            <th>DUE</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksTableBody">
+                        <!-- Tasks will be rendered here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Chat Panel (Right Column) -->
+        <div class="chat-panel" id="chatPanelMain">
+            <h3>Team Chat</h3>
+            <div id="chatMessages">
+                <div class="chat-empty">No messages yet. Start the conversation!</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off">
+                <button class="btn" id="sendChatBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="dashboard.js"></script>
+</body>
+</html>

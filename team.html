@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Teams - CollabFlow</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="team-container">
+        <div class="team-card">
+            <h1>Your Teams</h1>
+            <p>Create a new team or join an existing one</p>
+            
+            <div id="teamButtons" class="team-buttons">
+                <button class="btn" onclick="showTeamForm('create')">Create Team</button>
+                <button class="btn btn-secondary" onclick="showTeamForm('join')">Join Team</button>
+            </div>
+
+            <div id="createTeamForm" class="team-form">
+                <div class="form-group">
+                    <label>Team Name</label>
+                    <input type="text" id="teamName" placeholder="Enter team name" required>
+                </div>
+                <button class="btn" onclick="createTeam()">Create Team</button>
+                <button class="btn btn-secondary" onclick="hideTeamForms()">Back</button>
+            </div>
+
+            <div id="joinTeamForm" class="team-form">
+                <div class="form-group">
+                    <label>Team Code</label>
+                    <input type="text" id="teamCode" placeholder="Enter 6-digit code" required>
+                </div>
+                <button class="btn" onclick="joinTeam()">Join Team</button>
+                <button class="btn btn-secondary" onclick="hideTeamForms()">Back</button>
+            </div>
+
+            <div id="teamList" class="team-list">
+                <h3>YOUR TEAMS</h3>
+                <div id="teamsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { collection, addDoc, query, where, getDocs, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        let currentUser = null;
+
+        // Check authentication
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadUserTeams();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        window.showTeamForm = function(type) {
+            document.getElementById('teamButtons').style.display = 'none';
+            if (type === 'create') {
+                document.getElementById('createTeamForm').classList.add('active');
+            } else {
+                document.getElementById('joinTeamForm').classList.add('active');
+            }
+        }
+
+        window.hideTeamForms = function() {
+            document.getElementById('teamButtons').style.display = 'flex';
+            document.getElementById('createTeamForm').classList.remove('active');
+            document.getElementById('joinTeamForm').classList.remove('active');
+        }
+
+        window.createTeam = async function() {
+            const teamName = document.getElementById('teamName').value.trim();
+            if (!teamName) return alert('Please enter a team name');
+            
+            try {
+                const teamCode = generateTeamCode();
+                const teamData = {
+                    name: teamName,
+                    code: teamCode,
+                    leaderId: currentUser.uid,
+                    leaderName: currentUser.displayName,
+                    memberIds: [currentUser.uid],
+                    members: [{ id: currentUser.uid, name: currentUser.displayName }],
+                    createdAt: new Date().toISOString()
+                };
+                
+                const docRef = await addDoc(collection(db, 'teams'), teamData);
+                
+                // Store team ID and navigate to dashboard
+                sessionStorage.setItem('currentTeamId', docRef.id);
+                sessionStorage.setItem('currentTeamData', JSON.stringify({...teamData, id: docRef.id}));
+                
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                alert('Error creating team: ' + error.message);
+            }
+        }
+
+        window.joinTeam = async function() {
+            const teamCode = document.getElementById('teamCode').value.trim().toUpperCase();
+            if (!teamCode) return alert('Please enter a team code');
+            
+            try {
+                const q = query(collection(db, 'teams'), where('code', '==', teamCode));
+                const snapshot = await getDocs(q);
+                
+                if (snapshot.empty) {
+                    return alert('Team not found');
+                }
+                
+                const teamDoc = snapshot.docs[0];
+                const teamData = teamDoc.data();
+                
+                if (teamData.memberIds.includes(currentUser.uid)) {
+                    return alert('You are already a member of this team');
+                }
+                
+                // Add user to team
+                await updateDoc(doc(db, 'teams', teamDoc.id), {
+                    memberIds: arrayUnion(currentUser.uid),
+                    members: arrayUnion({ id: currentUser.uid, name: currentUser.displayName })
+                });
+                
+                // Store team ID and navigate to dashboard
+                sessionStorage.setItem('currentTeamId', teamDoc.id);
+                sessionStorage.setItem('currentTeamData', JSON.stringify({...teamData, id: teamDoc.id}));
+                
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                alert('Error joining team: ' + error.message);
+            }
+        }
+
+        async function loadUserTeams() {
+            try {
+                const q = query(collection(db, 'teams'), where('memberIds', 'array-contains', currentUser.uid));
+                const snapshot = await getDocs(q);
+                
+                const container = document.getElementById('teamsContainer');
+                container.innerHTML = '';
+                
+                snapshot.forEach((docSnap) => {
+                    const team = docSnap.data();
+                    const div = document.createElement('div');
+                    div.className = 'team-item';
+                    div.innerHTML = `
+                        <h4>${team.name}</h4>
+                        <p>Code: ${team.code}</p>
+                    `;
+                    div.onclick = () => selectTeam(docSnap.id, team);
+                    container.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Error loading teams:', error);
+            }
+        }
+
+        function selectTeam(teamId, teamData) {
+            sessionStorage.setItem('currentTeamId', teamId);
+            sessionStorage.setItem('currentTeamData', JSON.stringify({...teamData, id: teamId}));
+            window.location.href = 'dashboard.html';
+        }
+
+        function generateTeamCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+    </script>
+</body>
+</html>
